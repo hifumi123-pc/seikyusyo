@@ -180,6 +180,7 @@ PDFを保存
       <div class="field"><label>会社名</label><input id="toName" placeholder="株式会社△△" oninput="render()"></div>
       <div class="field"><label>部署名</label><input id="toDept" placeholder="経理部" oninput="render()"></div>
       <div class="field"><label>担当者名</label><input id="toAttn" placeholder="山田 太郎" oninput="render()"></div>
+      <div class="field"><label>敬称</label><select id="toHonorific" onchange="render()"><option value="様">様</option><option value="御中">御中</option><option value="">（空白）</option></select></div>
     </div>
 
     <div class="section">
@@ -335,6 +336,7 @@ function render() {
   const toName   = g('toName');
   const toDept   = g('toDept');
   const toAttn   = g('toAttn');
+  const toHonorific = g('toHonorific');
   const bankName = g('bankName');
   const branch   = g('branchName');
   const accType  = g('accType');
@@ -381,9 +383,9 @@ function render() {
 
     <div class="inv-top">
       <div class="inv-to">
-        <div class="company">${x(toName) || '（請求先名）'}&nbsp;御中</div>
+        <div class="company">${x(toName) || '（請求先名）'}${!toAttn && toHonorific ? '&nbsp;' + toHonorific : ''}</div>
         ${toDept ? `<div class="sub">${x(toDept)}</div>` : ''}
-        ${toAttn ? `<div class="sub">${x(toAttn)}&nbsp;様</div>` : ''}
+        ${toAttn ? `<div class="sub">${x(toAttn)}${toHonorific ? '&nbsp;' + toHonorific : ''}</div>` : ''}
         <div class="amount-label">ご請求金額</div>
         <div class="amount">¥&nbsp;${n(total)}（税込）</div>
         ${due ? `<div class="due">お支払期限：${jpDate(due)}</div>` : ''}
@@ -439,7 +441,7 @@ function saveJSON() {
     invoiceNo: g('invoiceNo'), issueDate: g('issueDate'), dueDate: g('dueDate'),
     issName: g('issName'), issPostal: g('issPostal'), issAddr: g('issAddr'),
     issPhone: g('issPhone'), issReg: g('issReg'),
-    toName: g('toName'), toDept: g('toDept'), toAttn: g('toAttn'),
+    toName: g('toName'), toDept: g('toDept'), toAttn: g('toAttn'), toHonorific: g('toHonorific'),
     items: items.map(i => ({...i})),
     bankName: g('bankName'), branchName: g('branchName'), accType: g('accType'),
     accNo: g('accNo'), accHolder: g('accHolder'), notes: g('notes'),
@@ -459,7 +461,7 @@ function loadJSON(e) {
     try {
       const d = JSON.parse(ev.target.result);
       const fields = ['invoiceNo','issueDate','dueDate','issName','issPostal','issAddr',
-        'issPhone','issReg','toName','toDept','toAttn',
+        'issPhone','issReg','toName','toDept','toAttn','toHonorific',
         'bankName','branchName','accType','accNo','accHolder','notes'];
       fields.forEach(f => { if (d[f] !== undefined && document.getElementById(f)) document.getElementById(f).value = d[f]; });
       items = (d.items || []).map(i => ({...i, id: Date.now() + Math.random()}));
