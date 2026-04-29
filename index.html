@@ -121,11 +121,12 @@
 
     /* ---- Print ---- */
     @media print {
-      .toolbar, .form-panel { display: none !important; }
+@page { margin: 0; padding: 0; }
+              .toolbar, .form-panel { display: none !important; }
       .app { height: auto; }
       .preview-panel { padding: 0; }
       .invoice { box-shadow: none; width: 100%; }
-      body { background: white; }
+      body { background:  margin: 0; padding: 0;white; }
     }
   </style>
 </head>
