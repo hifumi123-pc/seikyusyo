@@ -1,3 +1,4 @@
+入力フォーム
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -5,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>請求書作成ツール</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+PDFを保存
     body { font-family: 'Meiryo', 'Yu Gothic', sans-serif; background: #f0f2f5; font-size: 14px; }
 
     /* ---- Toolbar ---- */
@@ -477,6 +478,132 @@ function jpDate(s) {
   loadIssuer();
   addItem();
 })();
+
+      // ========== 電子印鑑機能 ==========
+      let stampImage = null;
+      let stampData = null;
+
+      // 電子印鑑画像アップロード処理
+      function handleStampUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                              stampImage = new Image();
+                              stampImage.onload = function() {
+                                                stampData = {
+                                                                      src: e.target.result,
+                                                                      x: 100,
+                                                                      y: 100,
+                                                                      width: 80,
+                                                                      height: 80,
+                                                                      rotation: 0,
+                                                                      opacity: 1
+                                                };
+                                                renderStampPreview();
+                              };
+                              stampImage.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+      }
+
+      // 電子印鑑プレビューレンダリング
+      function renderStampPreview() {
+                const preview = document.getElementById('stampPreview');
+                if (!preview || !stampData) return;
+
+                const img = document.createElement('img');
+                img.src = stampData.src;
+                img.style.width = stampData.width + 'px';
+                img.style.height = stampData.height + 'px';
+                img.style.opacity = stampData.opacity;
+                img.style.transform = `rotate(${stampData.rotation}deg)`;
+                img.style.cursor = 'move';
+                img.style.position = 'absolute';
+                img.style.left = stampData.x + 'px';
+                img.style.top = stampData.y + 'px';
+                img.classList.add('stamp-img');
+
+                preview.innerHTML = '';
+                preview.appendChild(img);
+
+                // ドラッグ機能
+                makeStampDraggable(img);
+      }
+
+      // ドラッグ&ドロップ機能
+      function makeStampDraggable(element) {
+                let isDragging = false;
+                let offsetX = 0, offsetY = 0;
+
+                element.addEventListener('mousedown', (e) => {
+                              isDragging = true;
+                              offsetX = e.clientX - element.offsetLeft;
+                              offsetY = e.clientY - element.offsetTop;
+                });
+
+                document.addEventListener('mousemove', (e) => {
+                              if (!isDragging) return;
+                              element.style.left = (e.clientX - offsetX) + 'px';
+                              element.style.top = (e.clientY - offsetY) + 'px';
+
+                              if (stampData) {
+                                                stampData.x = e.clientX - offsetX;
+                                                stampData.y = e.clientY - offsetY;
+                              }
+                });
+
+                document.addEventListener('mouseup', () => {
+                              isDragging = false;
+                });
+      }
+
+      // 電子印鑑を請求書に描画
+      function drawStampOnInvoice(canvas, stampImg) {
+                if (!stampData) return;
+
+                const ctx = canvas.getContext('2d');
+                ctx.globalAlpha = stampData.opacity;
+                ctx.translate(stampData.x + stampData.width / 2, stampData.y + stampData.height / 2);
+                ctx.rotate((stampData.rotation * Math.PI) / 180);
+                ctx.drawImage(stampImg, -stampData.width / 2, -stampData.height / 2, stampData.width, stampData.height);
+                ctx.resetTransform();
+      }
+  
+    <!-- 電子印鑑セクション -->
+          <div id="stampSection" style="border-top: 1px solid #ddd; padding: 16px 0; margin-top: 16px;">
+              <h3>電子印鑑</h3>
+        <div style="display: flex; gap: 16px; align-items: flex-start;">
+                  <!-- 電子印鑑アップロード -->
+                  <div style="flex: 1;">
+                      <label for="stampInput">印鑑画像をアップロード:</label>
+                <input type="file" id="stampInput" accept="image/*" onchange="handleStampUpload(event)" style="display: block; margin-top: 8px;">
+                      <small style="color: #666;">PNG/JPGなど透過可能な画像を推奨します</small>
+      </div>
+            
+            <!-- 電子印鑑コントロール -->
+                  <div style="flex: 1;" id="stampControls" style="display: none;">
+                      <div style="margin-bottom: 12px;">
+                          <label for="stampSize">サイズ (px):</label>
+                    <input type="range" id="stampSize" min="20" max="200" value="80" oninput="if (stampData) { stampData.width = stampData.height = this.value; renderStampPreview(); }" style="width: 100%;">
+      </div>
+                <div style="margin-bottom: 12px;">
+                          <label for="stampRotation">回転 (度):</label>
+                    <input type="range" id="stampRotation" min="0" max="360" value="0" oninput="if (stampData) { stampData.rotation = this.value; renderStampPreview(); }" style="width: 100%;">
+      </div>
+                <div>
+                          <label for="stampOpacity">透明度:</label>
+                    <input type="range" id="stampOpacity" min="0" max="1" step="0.1" value="1" oninput="if (stampData) { stampData.opacity = this.value; renderStampPreview(); }" style="width: 100%;">
+      </div>
+      </div>
+      </div>
+        
+        <!-- 電子印鑑プレビュー -->
+              <div id="stampPreview" style="position: relative; width: 100%; height: 200px; border: 1px dashed #ccc; background-color: #f9f9f9; margin-top: 12px; overflow: hidden;">
+      </div>
+      </div>
+
 </script>
 </body>
 </html>
