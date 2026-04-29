@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>請求書作成ツール</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Meiryo', 'Yu Gothic', sans-serif; background: #f0f2f5; font-size: 14px; }
+
+    /* ---- Toolbar ---- */
+    .toolbar {
+      background: #1a237e; color: white;
+      padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .toolbar h1 { font-size: 16px; font-weight: bold; margin-right: auto; }
+
+    /* ---- Layout ---- */
+    .app { display: flex; height: calc(100vh - 46px); }
+    .form-panel {
+      width: 360px; min-width: 360px; overflow-y: auto;
+      background: white; border-right: 1px solid #ddd; padding: 16px;
+    }
+    .preview-panel {
+      flex: 1; overflow-y: auto; padding: 24px;
+      display: flex; justify-content: center; align-items: flex-start;
+    }
+
+    /* ---- Form ---- */
+    .section { margin-bottom: 20px; }
+    .section-title {
+      font-size: 12px; font-weight: bold; color: #1a237e;
+      border-bottom: 2px solid #1a237e; padding-bottom: 3px; margin-bottom: 10px;
+    }
+    .field { margin-bottom: 8px; }
+    .field label { display: block; font-size: 11px; color: #666; margin-bottom: 2px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 6px 8px; border: 1px solid #ccc;
+      border-radius: 3px; font-size: 13px; font-family: inherit;
+    }
+    .field textarea { height: 56px; resize: vertical; }
+    .row { display: flex; gap: 8px; }
+    .row .field { flex: 1; }
+
+    /* ---- Items form table ---- */
+    .items-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .items-tbl th {
+      background: #e8eaf6; padding: 4px 3px; border: 1px solid #bbb;
+      text-align: center; font-weight: normal;
+    }
+    .items-tbl td { border: 1px solid #bbb; padding: 1px; }
+    .items-tbl input, .items-tbl select {
+      width: 100%; border: none; padding: 4px 3px;
+      font-size: 12px; font-family: inherit; background: transparent;
+    }
+
+    /* ---- Buttons ---- */
+    .btn {
+      padding: 7px 14px; border: none; border-radius: 4px;
+      cursor: pointer; font-size: 13px; font-family: inherit; white-space: nowrap;
+    }
+    .btn-white  { background: white; color: #1a237e; border: 1px solid white; }
+    .btn-green  { background: #2e7d32; color: white; }
+    .btn-blue   { background: #1565c0; color: white; }
+    .btn-dashed { background: white; color: #1a237e; border: 1px dashed #1a237e; width: 100%; margin-top: 6px; }
+    .btn-del    { background: #e53935; color: white; border: none; padding: 2px 7px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+
+    /* ---- Invoice Preview ---- */
+    .invoice {
+      width: 794px;
+      background: white;
+      padding: 52px 60px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+      font-family: 'Meiryo', 'Yu Gothic', 'MS PGothic', sans-serif;
+    }
+    .inv-title {
+      text-align: center; font-size: 28px; font-weight: bold;
+      letter-spacing: 10px; margin-bottom: 24px;
+    }
+    .inv-top { display: flex; justify-content: space-between; margin-bottom: 20px; }
+
+    .inv-to .company { font-size: 19px; font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 4px; }
+    .inv-to .sub     { font-size: 13px; margin-top: 3px; }
+    .inv-to .amount-label { font-size: 12px; margin-top: 14px; color: #444; }
+    .inv-to .amount  { font-size: 24px; font-weight: bold; }
+    .inv-to .due     { font-size: 12px; margin-top: 4px; }
+
+    .inv-from { text-align: right; font-size: 13px; line-height: 1.9; }
+    .inv-from .from-name { font-size: 16px; font-weight: bold; }
+    .inv-from .meta-tbl  { margin-left: auto; font-size: 13px; margin-bottom: 10px; }
+    .inv-from .meta-tbl td { padding: 1px 5px; }
+    .inv-from .meta-tbl td:first-child { text-align: right; color: #555; }
+
+    /* ---- Items table ---- */
+    .detail-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin: 20px 0 14px; }
+    .detail-tbl th {
+      background: #1a237e; color: white; padding: 8px 6px;
+      text-align: center; border: 1px solid #1a237e;
+    }
+    .detail-tbl td { padding: 7px 6px; border: 1px solid #ccc; }
+    .detail-tbl tbody tr:nth-child(even) { background: #f7f7f7; }
+    .tr { text-align: right; }
+    .tc { text-align: center; }
+
+    /* ---- Totals ---- */
+    .totals { display: flex; justify-content: flex-end; margin-bottom: 18px; }
+    .tot-tbl { border-collapse: collapse; font-size: 13px; }
+    .tot-tbl tr { border-bottom: 1px solid #eee; }
+    .tot-tbl td { padding: 5px 10px; }
+    .tot-tbl .lbl { text-align: right; color: #555; }
+    .tot-tbl .amt { text-align: right; min-width: 130px; }
+    .tot-tbl .grand { font-size: 16px; font-weight: bold; background: #e8eaf6; }
+
+    /* ---- Bank / Notes ---- */
+    .bank-box { border: 1px solid #ccc; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; line-height: 1.8; }
+    .bank-box h4 { font-size: 13px; font-weight: bold; margin-bottom: 4px; }
+    .notes-box { font-size: 13px; line-height: 1.7; }
+    .notes-box h4 { font-weight: bold; margin-bottom: 3px; }
+    .tax-note { font-size: 11px; color: #555; margin-top: 10px; }
+
+    /* ---- Print ---- */
+    @media print {
+      .toolbar, .form-panel { display: none !important; }
+      .app { height: auto; }
+      .preview-panel { padding: 0; }
+      .invoice { box-shadow: none; width: 100%; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="toolbar">
+  <h1>請求書作成ツール</h1>
+  <button class="btn btn-green" onclick="saveJSON()">JSONで保存</button>
+  <label class="btn btn-blue" style="cursor:pointer;">
+    JSONを読込
+    <input type="file" accept=".json" onchange="loadJSON(event)" style="display:none;">
+  </label>
+  <button class="btn btn-white" onclick="window.print()">PDF印刷</button>
+</div>
+
+<div class="app">
+
+  <!-- ========== 入力フォーム ========== -->
+  <div class="form-panel">
+
+    <div class="section">
+      <div class="section-title">基本情報</div>
+      <div class="row">
+        <div class="field">
+          <label>請求書番号</label>
+          <input id="invoiceNo" placeholder="2026-04-001" oninput="render()">
+        </div>
+        <div class="field">
+          <label>発行日</label>
+          <input id="issueDate" type="date" oninput="render()">
+        </div>
+      </div>
+      <div class="field">
+        <label>支払期限</label>
+        <input id="dueDate" type="date" oninput="render()">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">発行者情報</div>
+      <div class="field"><label>会社名・氏名</label><input id="issName" placeholder="株式会社〇〇" oninput="render()"></div>
+      <div class="field"><label>郵便番号</label><input id="issPostal" placeholder="000-0000" oninput="render()"></div>
+      <div class="field"><label>住所</label><input id="issAddr" placeholder="東京都〇〇区1-2-3" oninput="render()"></div>
+      <div class="field"><label>電話番号</label><input id="issPhone" placeholder="03-0000-0000" oninput="render()"></div>
+      <div class="field"><label>登録番号（T番号）</label><input id="issReg" placeholder="T1234567890123" maxlength="14" oninput="render()"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">請求先</div>
+      <div class="field"><label>会社名</label><input id="toName" placeholder="株式会社△△" oninput="render()"></div>
+      <div class="field"><label>部署名</label><input id="toDept" placeholder="経理部" oninput="render()"></div>
+      <div class="field"><label>担当者名</label><input id="toAttn" placeholder="山田 太郎" oninput="render()"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">明細</div>
+      <table class="items-tbl">
+        <thead>
+          <tr>
+            <th style="width:34%">品名</th>
+            <th style="width:11%">数量</th>
+            <th style="width:11%">単位</th>
+            <th style="width:20%">単価</th>
+            <th style="width:13%">税率</th>
+            <th style="width:11%"></th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody"></tbody>
+      </table>
+      <button class="btn btn-dashed" onclick="addItem()">＋ 行を追加</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">振込先</div>
+      <div class="row">
+        <div class="field"><label>銀行名</label><input id="bankName" placeholder="〇〇銀行" oninput="render()"></div>
+        <div class="field"><label>支店名</label><input id="branchName" placeholder="〇〇支店" oninput="render()"></div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>口座種別</label>
+          <select id="accType" onchange="render()">
+            <option>普通</option><option>当座</option>
+          </select>
+        </div>
+        <div class="field"><label>口座番号</label><input id="accNo" placeholder="1234567" oninput="render()"></div>
+      </div>
+      <div class="field"><label>口座名義（カタカナ）</label><input id="accHolder" placeholder="カ）マルマル" oninput="render()"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">備考</div>
+      <div class="field"><textarea id="notes" placeholder="特記事項など" oninput="render()"></textarea></div>
+    </div>
+
+  </div>
+
+  <!-- ========== 請求書プレビュー ========== -->
+  <div class="preview-panel">
+    <div class="invoice" id="invoice"></div>
+  </div>
+
+</div>
+
+<script>
+// ── 明細データ ──────────────────────────────────────────
+let items = [];
+
+function addItem() {
+  items.push({ id: Date.now() + Math.random(), desc: '', qty: 1, unit: '式', price: 0, tax: 10 });
+  renderForm();
+  render();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderForm();
+  render();
+}
+
+function setItem(id, key, val) {
+  const it = items.find(i => i.id === id);
+  if (!it) return;
+  it[key] = (key === 'qty' || key === 'price' || key === 'tax') ? (parseFloat(val) || 0) : val;
+  render();
+}
+
+function renderForm() {
+  document.getElementById('itemsBody').innerHTML = items.map(it => `
+    <tr>
+      <td><input value="${x(it.desc)}" placeholder="品名" oninput="setItem(${it.id},'desc',this.value)"></td>
+      <td><input type="number" value="${it.qty}" min="1" style="text-align:right" oninput="setItem(${it.id},'qty',this.value)"></td>
+      <td><input value="${x(it.unit)}" oninput="setItem(${it.id},'unit',this.value)"></td>
+      <td><input type="number" value="${it.price}" min="0" style="text-align:right" oninput="setItem(${it.id},'price',this.value)"></td>
+      <td>
+        <select onchange="setItem(${it.id},'tax',this.value)">
+          <option value="10" ${it.tax===10?'selected':''}>10%</option>
+          <option value="8"  ${it.tax===8 ?'selected':''}>8%※</option>
+          <option value="0"  ${it.tax===0 ?'selected':''}>非課税</option>
+        </select>
+      </td>
+      <td style="text-align:center"><button class="btn-del" onclick="removeItem(${it.id})">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+// ── 計算 ─────────────────────────────────────────────
+function calcTotals() {
+  let sub = 0, base10 = 0, base8 = 0, tax10 = 0, tax8 = 0;
+  items.forEach(it => {
+    const amt = it.qty * it.price;
+    sub += amt;
+    if (it.tax === 10)      { base10 += amt; tax10 += Math.floor(amt * 0.10); }
+    else if (it.tax === 8)  { base8  += amt; tax8  += Math.floor(amt * 0.08); }
+  });
+  return { sub, base10, base8, tax10, tax8, total: sub + tax10 + tax8 };
+}
+
+// ── プレビュー描画 ────────────────────────────────────
+function render() {
+  saveIssuer();
+
+  const no       = g('invoiceNo');
+  const issued   = g('issueDate');
+  const due      = g('dueDate');
+  const issName  = g('issName');
+  const issPost  = g('issPostal');
+  const issAddr  = g('issAddr');
+  const issPhone = g('issPhone');
+  const issReg   = g('issReg');
+  const toName   = g('toName');
+  const toDept   = g('toDept');
+  const toAttn   = g('toAttn');
+  const bankName = g('bankName');
+  const branch   = g('branchName');
+  const accType  = g('accType');
+  const accNo    = g('accNo');
+  const accHolder= g('accHolder');
+  const notes    = g('notes');
+
+  const { sub, base10, base8, tax10, tax8, total } = calcTotals();
+  const hasTax8  = base8 > 0;
+  const hasTax10 = base10 > 0;
+
+  // 空行を追加して見た目を整える（最低8行）
+  const emptyRows = Math.max(0, 8 - items.length);
+  const empty = '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>'.repeat(emptyRows);
+
+  const rows = items.map(it => {
+    const amt = it.qty * it.price;
+    const taxLbl = it.tax === 10 ? '10%' : it.tax === 8 ? '8%※' : '非課税';
+    return `<tr>
+      <td>${x(it.desc)}</td>
+      <td class="tc">${it.qty}</td>
+      <td class="tc">${x(it.unit)}</td>
+      <td class="tr">${n(it.price)}</td>
+      <td class="tc">${taxLbl}</td>
+      <td class="tr">${n(amt)}</td>
+    </tr>`;
+  }).join('') + empty;
+
+  const bankSection = (bankName || accNo) ? `
+    <div class="bank-box">
+      <h4>お振込先</h4>
+      <div>${x(bankName)}　${x(branch)}　${x(accType)}　${x(accNo)}</div>
+      <div>口座名義：${x(accHolder)}</div>
+    </div>` : '';
+
+  const notesSection = notes ? `
+    <div class="notes-box">
+      <h4>備考</h4>
+      <div style="white-space:pre-wrap">${x(notes)}</div>
+    </div>` : '';
+
+  document.getElementById('invoice').innerHTML = `
+    <div class="inv-title">請　求　書</div>
+
+    <div class="inv-top">
+      <div class="inv-to">
+        <div class="company">${x(toName) || '（請求先名）'}&nbsp;御中</div>
+        ${toDept ? `<div class="sub">${x(toDept)}</div>` : ''}
+        ${toAttn ? `<div class="sub">${x(toAttn)}&nbsp;様</div>` : ''}
+        <div class="amount-label">ご請求金額</div>
+        <div class="amount">¥&nbsp;${n(total)}（税込）</div>
+        ${due ? `<div class="due">お支払期限：${jpDate(due)}</div>` : ''}
+      </div>
+
+      <div class="inv-from">
+        <table class="meta-tbl">
+          <tr><td>発行日：</td><td>${jpDate(issued) || '　　　　　'}</td></tr>
+          <tr><td>請求書番号：</td><td>${x(no) || '　　　　　'}</td></tr>
+        </table>
+        <div class="from-name">${x(issName) || '（発行者名）'}</div>
+        ${issPost  ? `<div>〒${x(issPost)}</div>` : ''}
+        ${issAddr  ? `<div>${x(issAddr)}</div>` : ''}
+        ${issPhone ? `<div>TEL: ${x(issPhone)}</div>` : ''}
+        ${issReg   ? `<div>登録番号：${x(issReg)}</div>` : ''}
+      </div>
+    </div>
+
+    <table class="detail-tbl">
+      <thead><tr>
+        <th style="width:38%">品名・内容</th>
+        <th style="width:8%">数量</th>
+        <th style="width:8%">単位</th>
+        <th style="width:14%">単価（円）</th>
+        <th style="width:8%">税率</th>
+        <th style="width:14%">金額（円）</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+
+    <div class="totals">
+      <table class="tot-tbl">
+        <tr><td class="lbl">小　計</td><td class="amt">¥ ${n(sub)}</td></tr>
+        ${hasTax10 ? `
+        <tr><td class="lbl">消費税（10%）対象額</td><td class="amt">¥ ${n(base10)}</td></tr>
+        <tr><td class="lbl">　消費税額（10%）</td><td class="amt">¥ ${n(tax10)}</td></tr>` : ''}
+        ${hasTax8  ? `
+        <tr><td class="lbl">消費税（8%※）対象額</td><td class="amt">¥ ${n(base8)}</td></tr>
+        <tr><td class="lbl">　消費税額（8%※）</td><td class="amt">¥ ${n(tax8)}</td></tr>` : ''}
+        <tr class="grand"><td class="lbl">合　計（税込）</td><td class="amt">¥ ${n(total)}</td></tr>
+      </table>
+    </div>
+
+    ${bankSection}
+    ${notesSection}
+    ${hasTax8 ? '<div class="tax-note">※ 印は軽減税率（8%）対象品目</div>' : ''}
+  `;
+}
+
+// ── JSON 保存 / 読込 ──────────────────────────────────
+function saveJSON() {
+  const data = {
+    invoiceNo: g('invoiceNo'), issueDate: g('issueDate'), dueDate: g('dueDate'),
+    issName: g('issName'), issPostal: g('issPostal'), issAddr: g('issAddr'),
+    issPhone: g('issPhone'), issReg: g('issReg'),
+    toName: g('toName'), toDept: g('toDept'), toAttn: g('toAttn'),
+    items: items.map(i => ({...i})),
+    bankName: g('bankName'), branchName: g('branchName'), accType: g('accType'),
+    accNo: g('accNo'), accHolder: g('accHolder'), notes: g('notes'),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `請求書_${data.invoiceNo || 'draft'}.json`;
+  a.click();
+}
+
+function loadJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      const fields = ['invoiceNo','issueDate','dueDate','issName','issPostal','issAddr',
+        'issPhone','issReg','toName','toDept','toAttn',
+        'bankName','branchName','accType','accNo','accHolder','notes'];
+      fields.forEach(f => { if (d[f] !== undefined && document.getElementById(f)) document.getElementById(f).value = d[f]; });
+      items = (d.items || []).map(i => ({...i, id: Date.now() + Math.random()}));
+      renderForm();
+      render();
+    } catch { alert('読み込みに失敗しました。'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+// ── 発行者情報をlocalStorageに保存 ───────────────────
+function saveIssuer() {
+  const d = {};
+  ['issName','issPostal','issAddr','issPhone','issReg',
+   'bankName','branchName','accType','accNo','accHolder'].forEach(f => d[f] = g(f));
+  localStorage.setItem('inv_issuer', JSON.stringify(d));
+}
+function loadIssuer() {
+  try {
+    const d = JSON.parse(localStorage.getItem('inv_issuer') || '{}');
+    Object.entries(d).forEach(([k,v]) => { const el = document.getElementById(k); if (el) el.value = v; });
+  } catch {}
+}
+
+// ── ユーティリティ ────────────────────────────────────
+function g(id)  { return document.getElementById(id)?.value || ''; }
+function n(num) { return Math.round(num).toLocaleString('ja-JP'); }
+function x(s)   {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function jpDate(s) {
+  if (!s) return '';
+  const [y,m,d] = s.split('-');
+  return `${y}年${+m}月${+d}日`;
+}
+
+// ── 初期化 ────────────────────────────────────────────
+(function init() {
+  const today = new Date();
+  const pad = v => String(v).padStart(2, '0');
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+  document.getElementById('issueDate').value = fmt(today);
+  const due = new Date(today.getFullYear(), today.getMonth()+2, 0); // 翌月末
+  document.getElementById('dueDate').value = fmt(due);
+  document.getElementById('invoiceNo').value =
+    `${today.getFullYear()}-${pad(today.getMonth()+1)}-001`;
+
+  loadIssuer();
+  addItem();
+})();
+</script>
+</body>
+</html>
