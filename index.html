@@ -583,7 +583,7 @@ function jpDate(s) {
       </div>
             
             <!-- 電子印鑑コントロール -->
-                  <div style="flex: 1;" id="stampControls" style="display: none;">
+                  <div style="flex: 1;" id="stampControls">
                       <div style="margin-bottom: 12px;">
                           <label for="stampSize">サイズ (px):</label>
                     <input type="range" id="stampSize" min="20" max="200" value="80" oninput="if (stampData) { stampData.width = stampData.height = this.value; renderStampPreview(); }" style="width: 100%;">
