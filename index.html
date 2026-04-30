@@ -400,6 +400,7 @@ function render() {
         ${issAddr  ? `<div>${x(issAddr)}</div>` : ''}
         ${issPhone ? `<div>TEL: ${x(issPhone)}</div>` : ''}
         ${issReg   ? `<div>登録番号：${x(issReg)}</div>` : ''}
+                ${stampData ? `<img id="invoice-stamp" src="${stampData.src}" style="display:block;width:${stampData.width}px;height:${stampData.height}px;opacity:${stampData.opacity};transform:rotate(${stampData.rotation}deg);margin-top:8px;">` : ''}
       </div>
     </div>
 
@@ -537,6 +538,7 @@ function jpDate(s) {
                                                                       opacity: 1
                                                 };
                                                 renderStampPreview();
+                                                                                render();
                               };
                               stampImage.src = e.target.result;
                 };
